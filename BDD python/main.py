@@ -28,24 +28,53 @@ class Handler(webapp2.RequestHandler):
     	self.response.write(*a, **kw)
 
     def render_str(self, template, **params):
-    	t = jinja_env.get_template(template)
-    	return t.render(params)
+		t = jinja_env.get_template(template)
+		return t.render(params)
 
     def render(self, template, **kw):
     	self.write(self.render_str(template, **kw))
 
 class MainPage(Handler):
+	def render_page(self):
+		articles = Article.all().order("-created")
+		self.render("front.html", articles=articles)
+
 	def get(self):
-		self.render("front.html")
+		self.render_page()
+
+class PostPage(Handler):
+	def render_page(self, subject="", content="", error=""):
+		self.render("post.html", subject=subject, content=content, error=error)
+
+	def get(self):
+		self.render("post.html")
 
 	def post(self):
-		title = self.request.get("title")
-		art = self.request.get("art")
+		subject = self.request.get("subject")
+		content = self.request.get("content")
 
-		if title and art:
-			self.write("thanks!")
+		if subject and content:
+			art = Article(content = content, subject=subject)
+			art.put()
+			self.redirect('/'+str(art.key().id()))
 		else:
-			error = "we need both title and art"
-			self.render("front.html", error = error)
+			error = "we need both subject and a content"
+			self.render_page(subject, content, error)
 
-app = webapp2.WSGIApplication([('/', MainPage)], debug=True)
+class PermaPage(Handler):
+	def get(self, id):
+		key = db.Key.from_path('Article', int(id))
+		article = db.get(key)
+
+		if not article:
+			self.error(404)
+			return
+
+		self.render("unique.html", article=article)
+
+class Article(db.Model):
+	content = db.TextProperty(required = True)
+	subject = db.StringProperty(required = True)
+	created = db.DateTimeProperty(auto_now_add = True)
+
+app = webapp2.WSGIApplication([('/', MainPage), ('/newpost', PostPage), (r'/(\d+)', PermaPage)], debug=True)
