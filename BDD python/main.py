@@ -27,7 +27,7 @@ class Handler(webapp2.RequestHandler):
     def write(self, *a, **kw):
     	self.response.write(*a, **kw)
 
-    def renderstr(self, template, **params):
+    def render_str(self, template, **params):
     	t = jinja_env.get_template(template)
     	return t.render(params)
 
@@ -44,7 +44,8 @@ class MainPage(Handler):
 
 		if title and art:
 			self.write("thanks!")
-		else
+		else:
 			error = "we need both title and art"
+			self.render("front.html", error = error)
 
-app = webapp2.WSGIApplication([('/', MainHandler)], debug=True)
+app = webapp2.WSGIApplication([('/', MainPage)], debug=True)
