@@ -90,21 +90,21 @@ class MainPage(Handler):
 		articles = Article.all().order("-created")
 		self.render("front.html", articles=articles, username=username)
 
-	def get(self, inutile):
+	def get(self):
 		self.render_page()
 
 class PostPage(Handler):
 	def render_page(self, subject="", content="", error=""):
 		self.render("post.html", subject=subject, content=content, error=error)
 
-	def get(self, inutile):
+	def get(self):
 		cookie = self.request.cookies.get('user_id')
 		auth = False
 		if cookie:
 			auth = True
 		self.render("post.html", auth=auth)
 
-	def post(self, inutile):
+	def post(self):
 		cookie = self.request.cookies.get('user_id')
 		if not cookie:
 			self.redirect('/')
@@ -121,7 +121,7 @@ class PostPage(Handler):
 			self.render_page(subject, content, error)
 
 class PermaPage(Handler):
-	def get(self, inutile, id):
+	def get(self, id):
 		key = db.Key.from_path('Article', int(id))
 		article = db.get(key)
 
@@ -140,7 +140,7 @@ class PermaJSON(Handler):
 		self.response.headers['Content-Type'] = 'application/json'
 		self.render("front_json.html", articles_json=articles_json)
 
-	def get(self, inutile, id):
+	def get(self, id):
 		self.render_page(id)
 
 class MainJSON(Handler):
@@ -155,17 +155,17 @@ class MainJSON(Handler):
 		self.response.headers['Content-Type'] = 'application/json'
 		self.render("front_json.html", articles_json=articles_json)
 
-	def get(self, inutile):
+	def get(self):
 		self.render_page()
 
 class CreateUser(Handler):
 	def render_page(self, username="", password="", error=""):
 		self.render("create_user.html", username=username, password=password, error=error)
 
-	def get(self, inutile):
+	def get(self):
 		self.render("create_user.html")
 
-	def post(self, inutile):
+	def post(self):
 		username = self.request.get("username")
 		password = self.request.get("password")
 		verify = self.request.get("verify")
@@ -200,10 +200,10 @@ class Login(Handler):
 	def render_page(self, username="", password="", error=""):
 		self.render("login.html", username=username, password=password, error=error)
 
-	def get(self, inutile):
+	def get(self):
 		self.render("login.html")
 
-	def post(self, inutile):
+	def post(self):
 		username = self.request.get("username")
 		password = self.request.get("password")
 
@@ -227,7 +227,7 @@ class Login(Handler):
 			self.render_page(username, password, error)
 
 class Logout(Handler):
-	def get(self, inutile):
+	def get(self):
 		cookie = self.request.cookies.get('user_id')
 		if cookie:
 			self.response.headers.add_header('Set-Cookie', 'user_id=; Path=/')
@@ -244,4 +244,4 @@ class User(db.Model):
 	password = db.StringProperty(required = True)
 	email = db.EmailProperty(required = False)
 
-app = webapp2.WSGIApplication([('/(blog)?', MainPage), ('(/blog)?/.json', MainJSON), ('(/blog)?/newpost', PostPage), ('(/blog)?/(\d+)', PermaPage), (r'(/blog)?/(\d+)\.json', PermaJSON), (r'(/blog)?/login', Login), (r'(/blog)?/signup', CreateUser), (r'(/blog)?/logout', Logout)], debug=True)
+app = webapp2.WSGIApplication([('/(?:blog)?', MainPage), ('(?:/blog)?/.json', MainJSON), ('(?:/blog)?/newpost', PostPage), ('(?:/blog)?/(\d+)', PermaPage), (r'(?:/blog)?/(\d+)\.json', PermaJSON), (r'(?:/blog)?/login', Login), (r'(?:/blog)?/signup', CreateUser), (r'(?:/blog)?/logout', Logout)], debug=True)
