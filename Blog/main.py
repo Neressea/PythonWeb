@@ -59,6 +59,9 @@ def valid_pw(name, pw, h):
     print(salt)
     return h == make_pw_hash(name, pw, salt)
 
+def toJSON(article):
+	return r'{"content":"%s", "created":"%s", "last_modified":"%s", "subject":"%s"}' % (article.content, article.created.strftime('%a %b %d %H:%M:%S %Y'), article.last_modified.strftime('%a %b %d %H:%M:%S %Y') , article.subject)
+
 class Handler(webapp2.RequestHandler):
     def write(self, *a, **kw):
     	self.response.write(*a, **kw)
@@ -71,7 +74,10 @@ class Handler(webapp2.RequestHandler):
     	self.write(self.render_str(template, **kw))
 
 class MainPage(Handler):
-	def get(self):
+	def render_page(self):
+
+		username = None
+
 		cookie = self.request.cookies.get('user_id')
 		if cookie:
 			secure_val = check_secure_val(cookie)
@@ -79,20 +85,87 @@ class MainPage(Handler):
 				self.redirect("/signup")
 			else:
 				id = int(secure_val)
-				username = User.get_by_id(id).username	
-				self.render("front.html", username=username)
-		else:
-			self.render("front.html")
+				username = User.get_by_id(id).username
 
-#Classe pour la creation d un utilisateur
+		articles = Article.all().order("-created")
+		self.render("front.html", articles=articles, username=username)
+
+	def get(self, inutile):
+		self.render_page()
+
+class PostPage(Handler):
+	def render_page(self, subject="", content="", error=""):
+		self.render("post.html", subject=subject, content=content, error=error)
+
+	def get(self, inutile):
+		cookie = self.request.cookies.get('user_id')
+		auth = False
+		if cookie:
+			auth = True
+		self.render("post.html", auth=auth)
+
+	def post(self, inutile):
+		cookie = self.request.cookies.get('user_id')
+		if not cookie:
+			self.redirect('/')
+
+		subject = self.request.get("subject")
+		content = self.request.get("content")
+
+		if subject and content:
+			art = Article(content = content, subject=subject)
+			art.put()
+			self.redirect('/'+str(art.key().id()))
+		else:
+			error = "we need both subject and a content"
+			self.render_page(subject, content, error)
+
+class PermaPage(Handler):
+	def get(self, inutile, id):
+		key = db.Key.from_path('Article', int(id))
+		article = db.get(key)
+
+		if not article:
+			self.error(404)
+			return
+
+		self.render("unique.html", article=article)
+
+class PermaJSON(Handler):
+	def render_page(self, id):
+		key = db.Key.from_path('Article', int(id))
+		article = db.get(key)
+
+		articles_json = toJSON(article)
+		self.response.headers['Content-Type'] = 'application/json'
+		self.render("front_json.html", articles_json=articles_json)
+
+	def get(self, inutile, id):
+		self.render_page(id)
+
+class MainJSON(Handler):
+	def render_page(self):
+
+		articles = Article.all().order("-created")
+		articles_json = "["
+		for a in articles:
+			articles_json+=toJSON(a)+","
+		articles_json+="]"
+		articles_json= articles_json.replace(",]", "]")
+		self.response.headers['Content-Type'] = 'application/json'
+		self.render("front_json.html", articles_json=articles_json)
+
+	def get(self, inutile):
+		self.render_page()
+
 class CreateUser(Handler):
 	def render_page(self, username="", password="", error=""):
 		self.render("create_user.html", username=username, password=password, error=error)
 
-	def get(self):
+	def get(self, inutile):
 		self.render("create_user.html")
 
-	def post(self):
+	def post(self, inutile):
 		username = self.request.get("username")
 		password = self.request.get("password")
 		verify = self.request.get("verify")
@@ -127,10 +200,10 @@ class Login(Handler):
 	def render_page(self, username="", password="", error=""):
 		self.render("login.html", username=username, password=password, error=error)
 
-	def get(self):
+	def get(self, inutile):
 		self.render("login.html")
 
-	def post(self):
+	def post(self, inutile):
 		username = self.request.get("username")
 		password = self.request.get("password")
 
@@ -154,15 +227,21 @@ class Login(Handler):
 			self.render_page(username, password, error)
 
 class Logout(Handler):
-	def get(self):
+	def get(self, inutile):
 		cookie = self.request.cookies.get('user_id')
 		if cookie:
 			self.response.headers.add_header('Set-Cookie', 'user_id=; Path=/')
 		self.redirect("/signup")
+
+class Article(db.Model):
+	content = db.TextProperty(required = True)
+	subject = db.StringProperty(required = True)
+	created = db.DateTimeProperty(auto_now_add = True)
+	last_modified = db.DateTimeProperty(auto_now = True)
 
 class User(db.Model):
 	username = db.StringProperty(required = True)
 	password = db.StringProperty(required = True)
 	email = db.EmailProperty(required = False)
 
-app = webapp2.WSGIApplication([('/', MainPage), ('/signup', CreateUser), ('/login', Login), ('/logout', Logout)], debug=True)
+app = webapp2.WSGIApplication([('/(blog)?', MainPage), ('(/blog)?/.json', MainJSON), ('(/blog)?/newpost', PostPage), ('(/blog)?/(\d+)', PermaPage), (r'(/blog)?/(\d+)\.json', PermaJSON), (r'(/blog)?/login', Login), (r'(/blog)?/signup', CreateUser), (r'(/blog)?/logout', Logout)], debug=True)

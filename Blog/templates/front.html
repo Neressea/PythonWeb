@@ -1,10 +1,26 @@
 {% extends "base.html" %}
+
+
+
 {% block content %}
+
+	{% if username %}
+
+		<div><h1>Welcome, {{username}} !</h1></div>
+
+	{% else %}
+
+		<div><h1>Welcome, Unknown !</h1></div>
+		
+	{% endif %}
+
 	{% for article in articles %}
 		<div class="article">
 			<div class="article-title">{{article.subject}}</div>
 			<pre class="article-art">{{article.content}}</pre>
 		</div>
 	{% endfor %}
-</div>
+
+
+
 {% endblock %}
