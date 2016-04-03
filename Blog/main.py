@@ -244,4 +244,4 @@ class User(db.Model):
 	password = db.StringProperty(required = True)
 	email = db.EmailProperty(required = False)
 
-app = webapp2.WSGIApplication([('/(?:blog)?', MainPage), ('(?:/blog)?/.json', MainJSON), ('(?:/blog)?/newpost', PostPage), ('(?:/blog)?/(\d+)', PermaPage), (r'(?:/blog)?/(\d+)\.json', PermaJSON), (r'(?:/blog)?/login', Login), (r'(?:/blog)?/signup', CreateUser), (r'(?:/blog)?/logout', Logout)], debug=True)
+app = webapp2.WSGIApplication([('/(?:blog/?)?', MainPage), ('(?:/blog)?/.json/?', MainJSON), ('(?:/blog)?/newpost/?', PostPage), ('(?:/blog)?/(\d+)/?', PermaPage), (r'(?:/blog)?/(\d+)\.json/?', PermaJSON), (r'(?:/blog)?/login/?', Login), (r'(?:/blog)?/signup/?', CreateUser), (r'(?:/blog)?/logout/?', Logout)], debug=True)
