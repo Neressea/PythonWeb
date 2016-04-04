@@ -25,8 +25,13 @@ import hmac
 import hashlib
 import random
 import string
+import logging
+import time
 
 from google.appengine.ext import db
+from google.appengine.api import memcache
+
+from datetime import datetime, timedelta
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape=True)
@@ -62,6 +67,38 @@ def valid_pw(name, pw, h):
 def toJSON(article):
 	return r'{"content":"%s", "created":"%s", "last_modified":"%s", "subject":"%s"}' % (article.content, article.created.strftime('%a %b %d %H:%M:%S %Y'), article.last_modified.strftime('%a %b %d %H:%M:%S %Y') , article.subject)
 
+#Fonction pour gérer la durée depuis le dernier accès à la DB
+def age_get(key):
+	r = memcache.get(key)
+	if r:
+		val, save_time = r
+		age = (datetime.utcnow() - save_time).total_seconds()
+	else:
+		val, age = None, 0
+
+	return val, age
+
+def age_set(key, value):
+	save_time = datetime.utcnow()
+	memcache.set(key, (value, save_time))
+
+def age_str(age):
+	s = 'Queried %s seconds ago'
+	age = int(age)
+	if age == 1:
+		s = s.replace('seconds', 'second')
+
+	return s % age
+
+def front_articles(update = False):
+	articles, age = age_get('front')
+	if articles is None or update:
+		logging.error("DB QUERY")
+		articles = Article.all().order("-created")
+		articles = list(articles)
+		age_set('front', articles)
+	return articles, age
+
 class Handler(webapp2.RequestHandler):
     def write(self, *a, **kw):
     	self.response.write(*a, **kw)
@@ -87,8 +124,8 @@ class MainPage(Handler):
 				id = int(secure_val)
 				username = User.get_by_id(id).username
 
-		articles = Article.all().order("-created")
-		self.render("front.html", articles=articles, username=username)
+		articles, age = front_articles()
+		self.render("front.html", articles=articles, username=username, time=age_str(age))
 
 	def get(self):
 		self.render_page()
@@ -99,9 +136,14 @@ class PostPage(Handler):
 
 	def get(self):
 		cookie = self.request.cookies.get('user_id')
-		auth = False
+		auth = True
 		if cookie:
-			auth = True
+			secure_val = check_secure_val(cookie)
+			if secure_val is None:
+				auth = False
+		else:
+			auth = False
+				
 		self.render("post.html", auth=auth)
 
 	def post(self):
@@ -115,6 +157,8 @@ class PostPage(Handler):
 		if subject and content:
 			art = Article(content = content, subject=subject)
 			art.put()
+			age_set(str(art.key().id), art)
+			front_articles(True)
 			self.redirect('/'+str(art.key().id()))
 		else:
 			error = "we need both subject and a content"
@@ -122,14 +166,20 @@ class PostPage(Handler):
 
 class PermaPage(Handler):
 	def get(self, id):
-		key = db.Key.from_path('Article', int(id))
-		article = db.get(key)
+		article, age = age_get(id)
+
+		if not article:
+
+			key = db.Key.from_path('Article', int(id))
+			article = db.get(key)
+			age_set(id, article)
+			age=0
 
 		if not article:
 			self.error(404)
 			return
 
-		self.render("unique.html", article=article)
+		self.render("unique.html", article=article, time=age_str(age))
 
 class PermaJSON(Handler):
 	def render_page(self, id):
@@ -163,7 +213,16 @@ class CreateUser(Handler):
 		self.render("create_user.html", username=username, password=password, error=error)
 
 	def get(self):
-		self.render("create_user.html")
+		cookie = self.request.cookies.get('user_id')
+		auth = True
+		if cookie:
+			secure_val = check_secure_val(cookie)
+			if secure_val is None:
+				auth = False
+		else:
+			auth = False
+
+		self.render("create_user.html", auth=auth)
 
 	def post(self):
 		username = self.request.get("username")
@@ -201,7 +260,16 @@ class Login(Handler):
 		self.render("login.html", username=username, password=password, error=error)
 
 	def get(self):
-		self.render("login.html")
+		cookie = self.request.cookies.get('user_id')
+		auth = True
+		if cookie:
+			secure_val = check_secure_val(cookie)
+			if secure_val is None:
+				auth = False
+		else:
+			auth = False
+
+		self.render("login.html", auth=auth)
 
 	def post(self):
 		username = self.request.get("username")
@@ -231,7 +299,12 @@ class Logout(Handler):
 		cookie = self.request.cookies.get('user_id')
 		if cookie:
 			self.response.headers.add_header('Set-Cookie', 'user_id=; Path=/')
-		self.redirect("/signup")
+		self.redirect("/")
+
+class Flush(Handler):
+	def get(self):
+		memcache.flush_all()
+		self.redirect("/")
 
 class Article(db.Model):
 	content = db.TextProperty(required = True)
@@ -244,4 +317,12 @@ class User(db.Model):
 	password = db.StringProperty(required = True)
 	email = db.EmailProperty(required = False)
 
-app = webapp2.WSGIApplication([('/(?:blog/?)?', MainPage), ('(?:/blog)?/.json/?', MainJSON), ('(?:/blog)?/newpost/?', PostPage), ('(?:/blog)?/(\d+)/?', PermaPage), (r'(?:/blog)?/(\d+)\.json/?', PermaJSON), (r'(?:/blog)?/login/?', Login), (r'(?:/blog)?/signup/?', CreateUser), (r'(?:/blog)?/logout/?', Logout)], debug=True)
+app = webapp2.WSGIApplication([('/(?:blog/?)?', MainPage), 
+	('(?:/blog)?/.json/?', MainJSON), ('(?:/blog)?/newpost/?', PostPage), 
+	('(?:/blog)?/(\d+)/?', PermaPage), 
+	(r'(?:/blog)?/(\d+)\.json/?', PermaJSON), 
+	(r'(?:/blog)?/login/?', Login), 
+	(r'(?:/blog)?/signup/?', CreateUser), 
+	(r'(?:/blog)?/logout/?', Logout), 
+	('(?:/blog)?/flush/?', Flush)],
+	debug=True)

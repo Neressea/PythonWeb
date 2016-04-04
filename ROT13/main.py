@@ -1,5 +1,9 @@
 #!/usr/bin/env python
-#
+# encoding=utf8  
+import sys  
+
+reload(sys)  
+sys.setdefaultencoding('utf8')
 # Copyright 2007 Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +27,7 @@ class MainHandler(webapp2.RequestHandler):
         self.form()
 
     def form(self, val=""):
-    	self.response.write("<html><header><title>Form test</title></header><body><form action=\"/\" method=\"post\">ROT 13<br><textarea name=\"text\">%s</textarea><br><input type=\"submit\" value=\"OK !\"><form></body></html>" % val)
+    	self.response.write("<html><header><title>Super ROT 13 !</title></header><body><a href=\"http://1.tous-les-problemes.appspot.com/\" id=\"retour\">Revenir au menu des problèmes</a><form action=\"/\" method=\"post\">ROT 13<br><textarea name=\"text\">%s</textarea><br><input type=\"submit\" value=\"OK !\"><form></body></html>" % val)
 
     def post(self):
 		text = self.request.get("text")

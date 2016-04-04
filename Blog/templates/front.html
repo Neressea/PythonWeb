@@ -4,21 +4,32 @@
 
 {% block content %}
 
+	<div>{{time}}</div>
+
 	{% if username %}
 
-		<div><h1>Welcome, {{username}} !</h1></div>
+		<div><h2>Welcome, <span id="user_name">{{username}}</span> !</h2> <a href="/blog/logout/">Se déconnecter</a></div>
 
 	{% else %}
 
-		<div><h1>Welcome, Unknown !</h1></div>
+		<div><h2>Welcome, <span id="user_name">Anon</span> !</h2> <a href="/login">Se connecter</a> <a href="/signup">S'enregistrer</a></div>
 		
 	{% endif %}
 
+	<a href="/blog/.json" class="tojson">Whole page to JSON !!</a>
+
+	{% if username %}
+		<br/><h2><a href="/blog/newpost/" class="post">Poster un nouvel article !</a></h2>
+	{% endif %}
+
 	{% for article in articles %}
+
 		<div class="article">
-			<div class="article-title">{{article.subject}}</div>
+			<h3 class="article-title"><a href="/blog/{{article.key().id()}}" class="link_article">{{article.subject}}</a></h3>
 			<pre class="article-art">{{article.content}}</pre>
+			<p class="created">Posté le {{article.created.strftime('%A %d %B %Y')}} à {{article.created.strftime('%H:%M:%S')}}</p>
 		</div>
+
 	{% endfor %}
 
 

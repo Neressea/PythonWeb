@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-
+	
 	<form method="post">
 		<label>
 			<div>Title</div>
@@ -23,8 +23,9 @@
 
 	{% for art in arts %}
 		<div class="art">
-			<div class="art-title">{{art.title}}</div>
+			<h2 class="art-title">{{art.title}}</h2>
 			<pre class="art-art">{{art.art}}</pre>
+			<p class="created">Posté le {{art.created.strftime('%A %d %B %Y')}} à {{art.created.strftime('%H:%M:%S')}}</p>
 		</div>
 	{% endfor %}
 </div>

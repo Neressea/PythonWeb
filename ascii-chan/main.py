@@ -25,10 +25,12 @@ import sys
 import webapp2
 import jinja2
 import time
+import logging
 import urllib2
 from xml.dom import minidom
 
 from google.appengine.ext import db
+from google.appengine.api import memcache
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape=True)
@@ -58,6 +60,15 @@ def gmaps_image(points):
         url+="&markers=%d,%d" % (p.lat, p.lon)
     return url
 
+def top_arts(update = False):
+	arts = memcache.get('top')
+	if arts is None or update:
+		logging.error("DB QUERY")
+		arts = Art.all().order("-created")
+		arts = list(arts)
+		memcache.set('top', arts)
+	return arts
+
 class Handler(webapp2.RequestHandler):
     def write(self, *a, **kw):
     	self.response.write(*a, **kw)
@@ -71,9 +82,7 @@ class Handler(webapp2.RequestHandler):
 
 class MainPage(Handler):
 	def render_page(self, title="", art="", error=""):
-		arts = Art.all().order("-created")
-		arts = list(arts)
-
+		arts = top_arts()
 		points= filter(None, (a.coords for a in arts))
 		img_url = None
 		if points:
@@ -97,6 +106,7 @@ class MainPage(Handler):
 
 			art.put()
 			time.sleep(0.1)
+			top_arts(True)
 			self.redirect('/')
 		else:
 			error = "we need both title and a art"

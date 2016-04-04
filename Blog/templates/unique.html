@@ -1,8 +1,11 @@
 {% extends "base.html" %}
 
 {% block content %}
+
+	<div>Queried {{time}} seconds ago</div>
 	<div class="article">
-		<div class="article-title">{{article.subject}}</div>
+		<h2 class="article-title">{{article.subject}}</h2> <a href="/blog/{{article.key().id()}}.json" class="tojson">To JSON !!</a>
 		<pre class="article-art">{{article.content}}</pre>
+		<p class="created">Posté le {{article.created.strftime('%A %d %B %Y')}} à {{article.created.strftime('%H:%M:%S')}}</p>
 	</div>
 {% endblock %}
