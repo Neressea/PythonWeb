@@ -17,34 +17,28 @@ sys.setdefaultencoding('utf8')
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 import os
 import webapp2
-import jinja2
-import hmac
-import hashlib
-import random
-import string
 
-from google.appengine.ext import db
-
-template_dir = os.path.join(os.path.dirname(__file__), 'templates')
-jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape=True)
-
-
-class Handler(webapp2.RequestHandler):
-    def write(self, *a, **kw):
-    	self.response.write(*a, **kw)
-
-    def render_str(self, template, **params):
-		t = jinja_env.get_template(template)
-		return t.render(params)
-
-    def render(self, template, **kw):
-    	self.write(self.render_str(template, **kw))
+from handlers.MainHandler import * 
+from handlers.BlogHandler import * 
+from handlers.Rot13Handler import * 
+from handlers.AsciiChanHandler import * 
 
 class MainPage(Handler):
 	def get(self):
 		self.render("front.html")
 
-app = webapp2.WSGIApplication([('/', MainPage)], debug=True)
+app = webapp2.WSGIApplication([('/', MainPage),
+	('/blog/?', BlogPage),
+	('/blog/.json/?', BlogJSON),
+	('/blog/newpost/?', PostPage),
+	('/blog/(\d+)/?', PermaPage),
+	(r'/blog/(\d+)\.json/?', PermaJSON),
+	(r'/blog/login/?', Login),
+	(r'/blog/signup/?', CreateUser),
+	(r'/blog/logout/?', Logout),
+	('/blog/flush/?', Flush),
+	('/asciichan/?', AsciiPage),
+	('/rot13/?', RotHandler)],
+	debug=True)

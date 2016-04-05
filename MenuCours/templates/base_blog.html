@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Magical Blog !</title>
+	<style type="text/css">
+		h2, h3{
+			display: inline-block;
+		}
+		h1{
+			text-align: center;
+		}
+		#main_link{
+			color: #21A462;
+		}
+		.link_article{
+			color:#8ABE9A;
+		}
+		a{
+			text-decoration: none;
+			color:#00CC00;
+		}
+		a:hover{
+			text-decoration: underline;
+		}
+		#user_name{
+			font-style: italic;
+		}
+
+		#main{
+			width: 50%;
+			margin: 0 auto;
+			padding: 10px;
+		}
+
+		.article-title{
+			padding:0px;
+			margin:0px;
+		}
+
+		.error{
+			color: red;
+		}
+
+		.post{
+			color: #D02090;
+		}
+
+		.created{
+			font-size: 0.8em;
+		}
+
+		.article-art{
+			font-size: 1.2em;
+		}
+
+		.tojson{
+			color: #00B8FF;
+		}
+
+		#retour{
+			display: block;
+			position: absolute;
+			margin: 0px;
+		}
+	</style>
+</head>
+<body>
+<a href="/" id="retour">Revenir au menu des problèmes</a>
+
+<div id="main">
+	<h1><a href="/blog" id="main_link">Magical Blog !</a></h1>
+	{% block content %}
+	{% endblock %}
+</div>
+
+</body>
+</html>

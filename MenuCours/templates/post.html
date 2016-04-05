@@ -1,0 +1,23 @@
+{%extends "base_blog.html" %}
+{% block content %}
+
+	{% if auth %}
+		<form method="post">
+			<label>
+				<div>Title</div>
+				<input type="text" name="subject" value="{{subject}}"></input>
+			</label>
+
+			<label>
+				<div>Article</div>
+				<textarea name="content">{{content}}</textarea>
+			</label>
+
+			<div class="error">{{error}}</div>
+
+			<input type="submit"></input>
+		</form>
+	{% else %}
+		<p class="error">Vous n'êtes pas authentifié !</p>
+	{% endif %}
+{% endblock %}
